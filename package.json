@@ -13,7 +13,7 @@
     "bot",
     "cloudflare-workers"
   ],
-  "author": "Dmytro Andriushchenko <spaer15@outlook.com>",
+  "author": "Dmytro Andriushchenko <spaser15@outlook.com>",
   "license": "MIT",
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20251229.0",
