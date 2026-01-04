@@ -1,0 +1,18 @@
+{
+  "muteme.success": "You have been muted for {duration}. Take care of yourself!",
+  "muteme.invalid_duration": "(Note: Invalid duration format \"{duration}\". Defaulted to 30 minutes)",
+  "muteme.duration_capped": "(Note: Duration capped at maximum of 1 day)",
+  "language.set.success": "Language has been changed to {language}",
+  "language.set.error.not_admin": "Only administrators can change the language",
+  "language.set.error.invalid_language": "Invalid language code. Available: {languages}",
+  "language.current": "Current language: {language}",
+  "language.available": "Available languages: English (en), Ukrainian (uk)",
+  "error.generic": "An error occurred. Please try again later.",
+  "error.api_failed": "Failed to communicate with Telegram API. Please try again later.",
+  "duration.minute": "minute",
+  "duration.minutes": "minutes",
+  "duration.hour": "hour",
+  "duration.hours": "hours",
+  "duration.day": "1 day"
+}
+
