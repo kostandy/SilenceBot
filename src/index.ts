@@ -1,5 +1,5 @@
-import type { Env, TelegramUpdate } from "./types";
-import { handleMutemeCommand, handleSetLangCommand } from "./helpers";
+import type { Env, Update } from "./types";
+import { handleMutemeCommand, handleSetLangCallbackQuery, sendSetLangPromptReply as sendSetLangPromptReply } from "./helpers";
 
 /**
  * Telegram bot for self-muting in group chats
@@ -17,16 +17,21 @@ export default {
     }
 
     try {
-      const update: TelegramUpdate = await request.json();
+      const update: Update = await request.json();
+      const message = update.message;
 
-      if (update.message && update.message.text) {
-        const message = update.message;
+      // Handle message updates
+      if (message && message.text) {
 
         if (message.text!.startsWith('/muteme')) {
           await handleMutemeCommand(message, env);
         } else if (message.text!.startsWith('/setlang')) {
-          await handleSetLangCommand(message, env);
+          await sendSetLangPromptReply(message, env);
         }
+
+      // Handle callback query updates
+      } else if (Object.hasOwn(update, 'callback_query')) {
+        await handleSetLangCallbackQuery(update.callback_query!, env);
       }
 
       return new Response('OK', { status: 200 });

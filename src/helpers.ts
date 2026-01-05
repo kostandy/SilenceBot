@@ -1,7 +1,7 @@
 import { ENABLED_LANGUAGES } from "./config";
 import { isChatAdministrator } from './helpers/admins';
 import { formatTranslation, getChatLanguage, setChatLanguage } from "./i18n";
-import type { Env, LanguageCode, RestrictChatMemberPermissions, TelegramMessage } from "./types";
+import type { Env, LanguageCode, RestrictChatMemberPermissions, Message, InlineKeyboardMarkup, CallbackQuery } from "./types";
 
 /**
  * Parses duration string (e.g., "30m", "1h", "1d") to seconds
@@ -89,13 +89,15 @@ export async function sendMessage(
     botToken: string,
     chatId: number,
     text: string,
-    replyToMessageId?: number
+    replyToMessageId?: number,
+    options?: { replyMarkup?: InlineKeyboardMarkup }
 ): Promise<Response> {
     const url = `https://api.telegram.org/bot${botToken}/sendMessage`;
     const payload: {
         chat_id: number;
         text: string;
         reply_to_message_id?: number;
+        reply_markup?: InlineKeyboardMarkup;
     } = {
         chat_id: chatId,
         text: text,
@@ -103,6 +105,10 @@ export async function sendMessage(
 
     if (replyToMessageId) {
         payload.reply_to_message_id = replyToMessageId;
+    }
+
+    if (options?.replyMarkup) {
+        payload.reply_markup = options.replyMarkup;
     }
 
     return fetch(url, {
@@ -148,7 +154,7 @@ export async function restrictChatMember(
  * Handles the /muteme command
  */
 export async function handleMutemeCommand(
-    message: TelegramMessage,
+    message: Message,
     env: Env
 ): Promise<void> {
     const chatId = message.chat.id;
@@ -244,18 +250,14 @@ export async function handleLangCommand(): Promise<void> {
 /**
  * Handles the /setlang command
  */
-export async function handleSetLangCommand(
-    message: TelegramMessage,
+export async function sendSetLangPromptReply(
+    message: Message,
     env: Env
 ): Promise<void> {
     const chatId = message.chat.id;
     const userId = message.from.id;
-    const text = message.text || '';
-
-    // Parse command arguments
-    const args = text.split(/\s+/).slice(1);
-    const languageCode = args.length > 0 ? args[0] as LanguageCode : null;
-
+    const text = message.text;
+    const replyMarkup = message.reply_markup;
     const chatLanguageCode = await getChatLanguage(chatId, env)
 
     // Check if user is an administrator
@@ -266,9 +268,75 @@ export async function handleSetLangCommand(
         return;
     }
 
+    // Send prompt reply by default
+    const replyMessage = formatTranslation('language.set.prompt', chatLanguageCode)
+    await sendMessage(env.TELEGRAM_BOT_TOKEN, chatId, replyMessage, undefined, {
+        replyMarkup: {
+            inline_keyboard: [
+                ENABLED_LANGUAGES.map(lang => ({
+                    text: formatTranslation(`language.set.prompt.option.${lang}`, chatLanguageCode),
+                    callback_data: lang
+                }))
+            ]
+        }
+    });
+}
+
+export async function answerCallbackQuery(callbackQueryId: string, text: string, env: Env) {
+    const url = `https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}/answerCallbackQuery`;
+    const payload = {
+        callback_query_id: callbackQueryId,
+        text: text,
+        cache_time: 5
+    };
+
+    return fetch(url, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+    });
+}
+
+export async function deleteMessage(chatId: number, messageId: number, env: Env): Promise<Response> {
+    const url = `https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}/deleteMessage`;
+    const payload = {
+        chat_id: chatId,
+        message_id: messageId
+    };
+
+    return fetch(url, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+    });
+}
+
+export async function handleSetLangCallbackQuery(callbackQuery: CallbackQuery, env: Env): Promise<void> {
+    const chatId = callbackQuery.message?.chat.id;
+    const userId = callbackQuery.from.id;
+    const languageCode = callbackQuery?.data as LanguageCode;
+
+    if (!chatId || !languageCode) {
+        return;
+    }
+
+    const chatLanguageCode = await getChatLanguage(chatId, env)
+
+    // Check if user is an administrator
+    if (!await isChatAdministrator(env.TELEGRAM_BOT_TOKEN, chatId, userId)) {
+        console.log(`[SETLANGCB] Attempt to bypass admin command: userId=${userId}, chatId=${chatId}`);
+        const replyMessage = formatTranslation('language.set.error.not_admin', chatLanguageCode)
+        await sendMessage(env.TELEGRAM_BOT_TOKEN, chatId, replyMessage);
+        return;
+    }
+
     // Validate language code
     if (!languageCode || ENABLED_LANGUAGES.indexOf(languageCode) === -1) {
-        console.log(`[SETLANG] Invalid language code: userId=${userId}, chatId=${chatId}, text=${text}`);
+        console.log(`[SETLANGCB] Invalid language code: userId=${userId}, chatId=${chatId}, languageCode=${languageCode}`);
         const replyMessage = formatTranslation('language.set.error.invalid_language', chatLanguageCode, {
             languages: ENABLED_LANGUAGES.toString()
         })
@@ -277,16 +345,25 @@ export async function handleSetLangCommand(
     }
 
     await setChatLanguage(chatId, languageCode, env);
+    
+    const selectedInlineKeyboard = callbackQuery.message?.reply_markup?.inline_keyboard[0].find(keyboard => keyboard.callback_data === languageCode)?.text || languageCode;
     const replyMessage = formatTranslation('language.set.success', languageCode, {
-        language: languageCode
+        language: selectedInlineKeyboard
     })
-    const sendResponse = await sendMessage(env.TELEGRAM_BOT_TOKEN, chatId, replyMessage);
 
-    if (!sendResponse.ok) {
-        const errorText = await sendResponse.text();
-        console.error(`[SETLANG] Failed to send confirmation: userId=${userId}, chatId=${chatId}, status=${sendResponse.status}, error=${errorText}`);
+    const cbQueryResponse = await answerCallbackQuery(callbackQuery.id, replyMessage, env);
+    if (!cbQueryResponse.ok) {
+        const errorText = await cbQueryResponse.text();
+        console.error(`[SETLANGCB] Failed to answer callback query: userId=${userId}, chatId=${chatId}, status=${cbQueryResponse.status}, error=${errorText}`);
     } else {
-        console.log(`[SETLANG] Language changed successfully: userId=${userId}, chatId=${chatId}, language=${languageCode}`);
+        console.log(`[SETLANGCB] Answered cb query successfully: userId=${userId}, chatId=${chatId}, language=${languageCode}`);
+    }
+
+    const deleteMessageResponse = await deleteMessage(chatId, callbackQuery.message!.message_id, env);
+    if (!deleteMessageResponse.ok) {
+        const errorText = await deleteMessageResponse.text();
+        console.error(`[SETLANGCB] Failed to delete message: userId=${userId}, chatId=${chatId}, status=${deleteMessageResponse.status}, error=${errorText}`);
+    } else {
+        console.log(`[SETLANGCB] Prompt message deleted: userId=${userId}, chatId=${chatId}`);
     }
 }
-

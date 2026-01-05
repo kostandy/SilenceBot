@@ -11,6 +11,9 @@ export interface Translations {
     'muteme.error.is_admin': string;
     'muteme.invalid_duration': string;
     'muteme.duration_capped': string;
+    'language.set.prompt': string;
+    "language.set.prompt.option.en": string;
+    "language.set.prompt.option.uk": string;
     'language.set.success': string;
     'language.set.error.not_admin': string;
     'language.set.error.invalid_language': string;
@@ -41,26 +44,46 @@ export interface Env {
     CHAT_LANGUAGES: KVNamespace;
 }
 
-export interface TelegramMessage {
+export interface User {
+    id: number;
+    is_bot: boolean;
+    first_name: string;
+    username?: string;
+}
+
+export interface InlineKeyboardButton {
+    text: string;
+    callback_data: string;
+}
+
+export interface InlineKeyboardMarkup {
+    inline_keyboard: InlineKeyboardButton[][];
+}
+
+export interface Message {
     message_id: number;
-    from: {
-        id: number;
-        is_bot: boolean;
-        first_name: string;
-        username?: string;
-    };
+    from: User;
     chat: {
         id: number;
         type: string;
         title?: string;
     };
-    text?: string;
+    text: string;
     date: number;
+    reply_markup?: InlineKeyboardMarkup;
 }
 
-export interface TelegramUpdate {
+export interface CallbackQuery {
+    id: string;
+    from: User;
+    message?: Message;
+    data: string;
+}
+
+export interface Update {
     update_id: number;
-    message?: TelegramMessage;
+    message?: Message;
+    callback_query?: CallbackQuery;
 }
 
 export interface RestrictChatMemberPermissions {
