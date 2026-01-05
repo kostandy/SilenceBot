@@ -1,13 +1,18 @@
 {
-  "$schema": "./node_modules/wrangler/config-schema.json",
-  "name": "silencebot",
-  "main": "src/index.ts",
-  "compatibility_date": "2025-12-01",
-  "observability": {
-    "enabled": true,
-    "logs": {
-      "enabled": true
-    }
-  }
+	"$schema": "./node_modules/wrangler/config-schema.json",
+	"name": "silencebot",
+	"main": "src/index.ts",
+	"compatibility_date": "2025-12-01",
+	"observability": {
+		"enabled": true,
+		"logs": {
+			"enabled": true
+		}
+	},
+	"kv_namespaces": [
+		{
+			"id": "47a9c6bfdbf2471885aaeaffc787eeed",
+			"binding": "CHAT_LANGUAGES"
+		}
+	]
 }
-
