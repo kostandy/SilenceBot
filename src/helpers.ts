@@ -257,12 +257,11 @@ export async function sendSetLangPromptReply(
     const chatId = message.chat.id;
     const userId = message.from.id;
     const text = message.text;
-    const replyMarkup = message.reply_markup;
     const chatLanguageCode = await getChatLanguage(chatId, env)
 
     // Check if user is an administrator
     if (!await isChatAdministrator(env.TELEGRAM_BOT_TOKEN, chatId, userId)) {
-        console.log(`[SETLANG] User is not an administrator: userId=${userId}, chatId=${chatId}, text=${text}`);
+        console.log(`[i18n] Attempt to bypass admin command: userId=${userId}, chatId=${chatId}`);
         const replyMessage = formatTranslation('language.set.error.not_admin', chatLanguageCode)
         await sendMessage(env.TELEGRAM_BOT_TOKEN, chatId, replyMessage);
         return;
@@ -328,7 +327,7 @@ export async function handleSetLangCallbackQuery(callbackQuery: CallbackQuery, e
 
     // Check if user is an administrator
     if (!await isChatAdministrator(env.TELEGRAM_BOT_TOKEN, chatId, userId)) {
-        console.log(`[SETLANGCB] Attempt to bypass admin command: userId=${userId}, chatId=${chatId}`);
+        console.log(`[i18n] Attempt to bypass admin command: userId=${userId}, chatId=${chatId}`);
         const replyMessage = formatTranslation('language.set.error.not_admin', chatLanguageCode)
         await sendMessage(env.TELEGRAM_BOT_TOKEN, chatId, replyMessage);
         return;
@@ -336,7 +335,7 @@ export async function handleSetLangCallbackQuery(callbackQuery: CallbackQuery, e
 
     // Validate language code
     if (!languageCode || ENABLED_LANGUAGES.indexOf(languageCode) === -1) {
-        console.log(`[SETLANGCB] Invalid language code: userId=${userId}, chatId=${chatId}, languageCode=${languageCode}`);
+        console.log(`[i18n] Invalid language code: userId=${userId}, chatId=${chatId}, languageCode=${languageCode}`);
         const replyMessage = formatTranslation('language.set.error.invalid_language', chatLanguageCode, {
             languages: ENABLED_LANGUAGES.toString()
         })
@@ -354,16 +353,16 @@ export async function handleSetLangCallbackQuery(callbackQuery: CallbackQuery, e
     const cbQueryResponse = await answerCallbackQuery(callbackQuery.id, replyMessage, env);
     if (!cbQueryResponse.ok) {
         const errorText = await cbQueryResponse.text();
-        console.error(`[SETLANGCB] Failed to answer callback query: userId=${userId}, chatId=${chatId}, status=${cbQueryResponse.status}, error=${errorText}`);
+        console.error(`[i18n] Failed to answer callback query: userId=${userId}, chatId=${chatId}, status=${cbQueryResponse.status}, error=${errorText}`);
     } else {
-        console.log(`[SETLANGCB] Answered cb query successfully: userId=${userId}, chatId=${chatId}, language=${languageCode}`);
+        console.log(`[i18n] Answered cb query successfully: userId=${userId}, chatId=${chatId}, language=${languageCode}`);
     }
 
     const deleteMessageResponse = await deleteMessage(chatId, callbackQuery.message!.message_id, env);
     if (!deleteMessageResponse.ok) {
         const errorText = await deleteMessageResponse.text();
-        console.error(`[SETLANGCB] Failed to delete message: userId=${userId}, chatId=${chatId}, status=${deleteMessageResponse.status}, error=${errorText}`);
+        console.error(`[i18n] Failed to delete message: userId=${userId}, chatId=${chatId}, status=${deleteMessageResponse.status}, error=${errorText}`);
     } else {
-        console.log(`[SETLANGCB] Prompt message deleted: userId=${userId}, chatId=${chatId}`);
+        console.log(`[i18n] Original prompt message deleted: userId=${userId}, chatId=${chatId}`);
     }
 }

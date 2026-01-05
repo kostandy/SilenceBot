@@ -108,9 +108,9 @@ export async function setChatLanguage(
     try {
         const key = `chat:${chatId}`;
         await env.CHAT_LANGUAGES.put(key, languageCode);
-        console.log(`[I18N] Language set for chatId=${chatId} to ${languageCode}`);
+        console.log(`[i18n] ${languageCode} has set in KV for chatId=${chatId}`);
     } catch (error) {
-        console.error(`[I18N] Failed to set chat language for chatId=${chatId}:`, error);
+        console.error(`[i18n] Failed to set chat language for chatId=${chatId}:`, error);
         throw new Error(`Failed to store language preference: ${error instanceof Error ? error.message : String(error)}`);
     }
 }
