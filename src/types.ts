@@ -8,6 +8,7 @@ export type LanguageCode = 'en' | 'uk';
  */
 export interface Translations {
     'muteme.success': string;
+    'muteme.error.is_admin': string;
     'muteme.invalid_duration': string;
     'muteme.duration_capped': string;
     'language.set.success': string;

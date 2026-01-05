@@ -1,5 +1,5 @@
 import { ENABLED_LANGUAGES } from "./config";
-import { isChatAdministrator } from "./helpers/admins";
+import { isChatAdministrator } from './helpers/admins';
 import { formatTranslation, getChatLanguage, setChatLanguage } from "./i18n";
 import type { Env, LanguageCode, RestrictChatMemberPermissions, TelegramMessage } from "./types";
 
@@ -186,6 +186,15 @@ export async function handleMutemeCommand(
     const formattedDuration = formatDuration(durationSeconds, chatLanguageCode);
 
     console.log(`[MUTEME] Processing mute request: userId=${userId}, chatId=${chatId}, duration=${durationMinutes}m, untilDate=${untilDate}`);
+
+    const isAdmin = await isChatAdministrator(env.TELEGRAM_BOT_TOKEN, chatId, userId);
+
+    if (isAdmin) {
+        console.log(`[MUTEME] User is an admin, cannot mute: userId=${userId}, chatId=${chatId}`);
+        const replyMessage = formatTranslation('muteme.error.is_admin', chatLanguageCode);
+        await sendMessage(env.TELEGRAM_BOT_TOKEN, chatId, replyMessage, message.message_id);
+        return;
+    }
 
     // Restrict the user
     const restrictResponse = await restrictChatMember(env.TELEGRAM_BOT_TOKEN, chatId, userId, untilDate);

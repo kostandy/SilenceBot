@@ -1,5 +1,6 @@
 {
   "muteme.success": "You have been muted for {duration}. Take care of yourself!",
+  "muteme.error.is_admin": "Administrators cannot mute themselves",
   "muteme.invalid_duration": "(Note: Invalid duration format \"{duration}\". Defaulted to 30 minutes)",
   "muteme.duration_capped": "(Note: Duration capped at maximum of 1 day)",
   "language.set.success": "Language has been changed to {language}",

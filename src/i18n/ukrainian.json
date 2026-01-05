@@ -1,5 +1,6 @@
 {
   "muteme.success": "Вас заглушено на {duration}. Бережіть себе!",
+  "muteme.error.is_admin": "Адміністратори не можуть заглушити себе",
   "muteme.invalid_duration": "(Примітка: Невірний формат тривалості \"{duration}\". Встановлено за замовчуванням 30 хвилин)",
   "muteme.duration_capped": "(Примітка: Тривалість обмежена максимумом 1 день)",
   "language.set.success": "Мову змінено на {language}",
