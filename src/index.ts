@@ -1,5 +1,5 @@
 import type { Env, TelegramUpdate } from "./types";
-import { handleMutemeCommand } from "./helpers";
+import { handleMutemeCommand, handleSetLangCommand } from "./helpers";
 
 /**
  * Telegram bot for self-muting in group chats
@@ -26,6 +26,8 @@ export default {
         // Handle /muteme command
         if (message.text!.startsWith('/muteme')) {
           await handleMutemeCommand(message, env);
+        } else if (message.text!.startsWith('/setlang')) {
+          await handleSetLangCommand(message, env);
         }
       } else {
         // Log non-command updates for observability (only in case of unexpected structure)

@@ -1,4 +1,7 @@
-import type { Env, RestrictChatMemberPermissions, TelegramMessage } from "./types";
+import { ENABLED_LANGUAGES } from "./config";
+import { isChatAdministrator } from "./helpers/admins";
+import { formatTranslation, setChatLanguage } from "./i18n";
+import type { Env, LanguageCode, RestrictChatMemberPermissions, TelegramMessage } from "./types";
 
 /**
  * Parses duration string (e.g., "30m", "1h", "1d") to seconds
@@ -207,3 +210,54 @@ export async function handleMutemeCommand(
         console.log(`[MUTEME] Successfully muted user: userId=${userId}, chatId=${chatId}, duration=${durationMinutes}m`);
     }
 }
+
+
+/**
+ * 
+ */
+export async function handleLangCommand(): Promise<void> {
+    // Placeholder for future implementation
+}
+
+/**
+ * Handles the /setlang command
+ */
+export async function handleSetLangCommand(
+    message: TelegramMessage,
+    env: Env
+): Promise<void> {
+    const chatId = message.chat.id;
+    const userId = message.from.id;
+    const text = message.text || '';
+
+    // Parse command arguments
+    const args = text.split(/\s+/).slice(1);
+    const languageCode = args.length > 0 ? args[0] as LanguageCode : null;
+
+    // Check if user is an administrator
+    if (!await isChatAdministrator(env.TELEGRAM_BOT_TOKEN, chatId, userId)) {
+        console.log(`[SETLANG] User is not an administrator: userId=${userId}, chatId=${chatId}, text=${text}`);
+        await sendMessage(env.TELEGRAM_BOT_TOKEN, chatId, 'This command is only available for administrators only');
+        return;
+    }
+
+    // Validate language code
+    if (!languageCode || ENABLED_LANGUAGES.indexOf(languageCode) === -1) {
+        console.log(`[SETLANG] Invalid language code: userId=${userId}, chatId=${chatId}, text=${text}`);
+        await sendMessage(env.TELEGRAM_BOT_TOKEN, chatId, 'Invalid language code. Available: English (en), Ukrainian (uk)');
+        return;
+    }
+
+    await setChatLanguage(chatId, languageCode, env);
+    const sendResponse = await sendMessage(env.TELEGRAM_BOT_TOKEN, chatId, formatTranslation('language.set.success', languageCode, {
+        language: languageCode
+    }));
+
+    if (!sendResponse.ok) {
+        const errorText = await sendResponse.text();
+        console.error(`[SETLANG] Failed to send confirmation: userId=${userId}, chatId=${chatId}, status=${sendResponse.status}, error=${errorText}`);
+    } else {
+        console.log(`[SETLANG] Language changed successfully: userId=${userId}, chatId=${chatId}, language=${languageCode}`);
+    }
+}
+

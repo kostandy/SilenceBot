@@ -1,3 +1,4 @@
+import { ENABLED_LANGUAGES } from '../config';
 import type { Env, LanguageCode, TranslationKey, Translations } from '../types';
 import englishTranslations from './english.json';
 import ukrainianTranslations from './ukrainian.json';
@@ -20,7 +21,7 @@ const DEFAULT_LANGUAGE: LanguageCode = 'en';
  * @param languageCode - Language code ('en' or 'uk')
  * @returns Translations object for the specified language
  */
-export async function loadTranslations(languageCode: LanguageCode): Promise<Translations> {
+export function loadTranslations(languageCode: LanguageCode): Translations {
     return translationsCache[languageCode] || translationsCache[DEFAULT_LANGUAGE];
 }
 
@@ -31,20 +32,20 @@ export async function loadTranslations(languageCode: LanguageCode): Promise<Tran
  * @param languageCode - Language code ('en' or 'uk')
  * @returns Translated string
  */
-export async function getTranslation(
+export function getTranslation(
     key: TranslationKey,
     languageCode: LanguageCode
-): Promise<string> {
-    const translations = await loadTranslations(languageCode);
+): string {
+    const translations = loadTranslations(languageCode);
     const translation = translations[key];
 
     // Fallback to English if translation is missing
     if (!translation && languageCode !== DEFAULT_LANGUAGE) {
         const defaultTranslations = translationsCache[DEFAULT_LANGUAGE];
-        return defaultTranslations[key] || key;
+        return defaultTranslations[key];
     }
 
-    return translation || key;
+    return translation;
 }
 
 /**
@@ -55,12 +56,12 @@ export async function getTranslation(
  * @param params - Parameters to replace in the translation
  * @returns Formatted translated string
  */
-export async function formatTranslation(
+export function formatTranslation(
     key: TranslationKey,
     languageCode: LanguageCode,
     params: Record<string, string>
-): Promise<string> {
-    let translation = await getTranslation(key, languageCode);
+): string {
+    let translation = getTranslation(key, languageCode);
 
     // Replace all placeholders {key} with values from params
     for (const [paramKey, paramValue] of Object.entries(params)) {
@@ -81,10 +82,10 @@ export async function formatTranslation(
 export async function getChatLanguage(chatId: number, env: Env): Promise<LanguageCode> {
     try {
         const key = `chat:${chatId}`;
-        const storedLanguage = await env.CHAT_LANGUAGES.get(key);
+        const storedLanguage = await env.CHAT_LANGUAGES.get(key) as LanguageCode;
 
-        if (storedLanguage && (storedLanguage === 'en' || storedLanguage === 'uk')) {
-            return storedLanguage as LanguageCode;
+        if (storedLanguage && ENABLED_LANGUAGES.includes(storedLanguage)) {
+            return storedLanguage;
         }
     } catch (error) {
         console.error(`[I18N] Failed to get chat language for chatId=${chatId}:`, error);
