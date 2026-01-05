@@ -58,8 +58,8 @@ export function getTranslation(
  */
 export function formatTranslation(
     key: TranslationKey,
-    languageCode: LanguageCode,
-    params: Record<string, string>
+    languageCode: LanguageCode = DEFAULT_LANGUAGE,
+    params: Record<string, string> = {}
 ): string {
     let translation = getTranslation(key, languageCode);
 

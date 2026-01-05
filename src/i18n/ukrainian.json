@@ -7,12 +7,8 @@
   "language.set.error.invalid_language": "Невірний код мови. Доступні: {languages}",
   "language.current": "Поточна мова: {language}",
   "language.available": "Доступні мови: Англійська (en), Українська (uk)",
-  "error.generic": "Сталася помилка. Будь ласка, спробуйте пізніше.",
-  "error.api_failed": "Не вдалося зв'язатися з API Telegram. Будь ласка, спробуйте пізніше.",
-  "duration.minute": "хвилину",
-  "duration.minutes": "хвилин",
-  "duration.hour": "годину",
-  "duration.hours": "годин",
+  "duration.minute": "{amount} хвилин",
+  "duration.hour": "{amount} годин",
   "duration.day": "1 день"
 }
 

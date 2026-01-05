@@ -7,12 +7,8 @@
   "language.set.error.invalid_language": "Invalid language code. Available: {languages}",
   "language.current": "Current language: {language}",
   "language.available": "Available languages: English (en), Ukrainian (uk)",
-  "error.generic": "An error occurred. Please try again later.",
-  "error.api_failed": "Failed to communicate with Telegram API. Please try again later.",
-  "duration.minute": "minute",
-  "duration.minutes": "minutes",
-  "duration.hour": "hour",
-  "duration.hours": "hours",
+  "duration.minute": "{amount} minute",
+  "duration.hour": "{amount} hour",
   "duration.day": "1 day"
 }
 

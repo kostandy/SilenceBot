@@ -1,6 +1,6 @@
 import { ENABLED_LANGUAGES } from "./config";
 import { isChatAdministrator } from "./helpers/admins";
-import { formatTranslation, setChatLanguage } from "./i18n";
+import { formatTranslation, getChatLanguage, setChatLanguage } from "./i18n";
 import type { Env, LanguageCode, RestrictChatMemberPermissions, TelegramMessage } from "./types";
 
 /**
@@ -47,33 +47,39 @@ export function parseDuration(input: string): number | null {
  * @param durationSeconds - Duration in seconds
  * @returns Formatted string (e.g., "30 minutes", "1 hour 20 minutes", "1 day")
  */
-export function formatDuration(durationSeconds: number): string {
+export function formatDuration(durationSeconds: number, languageCode?: LanguageCode): string {
     const MAX_DURATION = 86400; // 24 * 60 * 60 = 86400 seconds per day
     const SECONDS_PER_HOUR = 3600; // 60 * 60 = 3600 seconds per hour
     const SECONDS_PER_MINUTE = 60; // 60 seconds per minute
 
     // If duration is 1 day or more, return "1 day"
     if (durationSeconds >= MAX_DURATION) {
-        return '1 day';
+        return formatTranslation('duration.day', languageCode);
     }
 
     const hours = Math.floor(durationSeconds / SECONDS_PER_HOUR);
     const remainingSeconds = durationSeconds % SECONDS_PER_HOUR;
     const minutes = Math.floor(remainingSeconds / SECONDS_PER_MINUTE);
 
-    const hoursPostfix = hours > 1 ? 's' : '';
-    const minutesPostfix = minutes > 1 ? 's' : '';
+    // TODO: Improve multi-lang pluralism for minutes & hours
+
+    const durationMinuteText = formatTranslation('duration.minute', languageCode, {
+        amount: minutes.toString()
+    })
 
     // If duration is 1 hour or more, show hours and minutes
     if (hours > 0) {
+        const durationHourText = formatTranslation('duration.hour', languageCode, {
+            amount: hours.toString()
+        })
         if (minutes === 0) {
-            return `${hours} hour${hoursPostfix}`;
+            return durationHourText;
         }
-        return `${hours} hour${hoursPostfix} ${minutes} minute${minutesPostfix}`;
+        return `${durationHourText} ${durationMinuteText}`;
     }
 
     // Otherwise show only minutes
-    return `${minutes} minute${minutesPostfix}`;
+    return durationMinuteText;
 }
 
 /**
@@ -172,10 +178,12 @@ export async function handleMutemeCommand(
         }
     }
 
+    const chatLanguageCode = await getChatLanguage(chatId, env)
+
     // Calculate until_date (Unix timestamp)
     const untilDate = Math.floor(Date.now() / 1000) + durationSeconds;
     const durationMinutes = Math.floor(durationSeconds / 60);
-    const formattedDuration = formatDuration(durationSeconds);
+    const formattedDuration = formatDuration(durationSeconds, chatLanguageCode);
 
     console.log(`[MUTEME] Processing mute request: userId=${userId}, chatId=${chatId}, duration=${durationMinutes}m, untilDate=${untilDate}`);
 
@@ -187,12 +195,18 @@ export async function handleMutemeCommand(
         throw new Error(`Failed to restrict chat member: ${restrictResponse.status}`);
     }
 
-    let replyMessage = `You have been muted for ${formattedDuration}. Take care of yourself!`;
+    let replyMessage = formatTranslation('muteme.success', chatLanguageCode, {
+        duration: formattedDuration
+    });
 
     if (requestedDurationIsInvalid) {
-        replyMessage += `\n(Note: Invalid duration format "${requestedDuration}". Defaulted to 30 minutes)`;
+        replyMessage += '\n'
+        replyMessage += formatTranslation('muteme.invalid_duration', chatLanguageCode, {
+            duration: requestedDuration || ''
+        });
     } else if (requestedRudationIsCapped) {
-        replyMessage += `\n(Note: Duration capped at maximum of 1 day)`;
+        replyMessage += '\n'
+        replyMessage += formatTranslation('muteme.duration_capped', chatLanguageCode);
     }
 
     // Send success message
@@ -205,7 +219,6 @@ export async function handleMutemeCommand(
     if (!sendResponse.ok) {
         const errorText = await sendResponse.text();
         console.error(`[MUTEME] Failed to send confirmation: userId=${userId}, chatId=${chatId}, status=${sendResponse.status}, error=${errorText}`);
-        // Don't throw here - mute was successful, just logging the message send failure
     } else {
         console.log(`[MUTEME] Successfully muted user: userId=${userId}, chatId=${chatId}, duration=${durationMinutes}m`);
     }
@@ -234,24 +247,31 @@ export async function handleSetLangCommand(
     const args = text.split(/\s+/).slice(1);
     const languageCode = args.length > 0 ? args[0] as LanguageCode : null;
 
+    const chatLanguageCode = await getChatLanguage(chatId, env)
+
     // Check if user is an administrator
     if (!await isChatAdministrator(env.TELEGRAM_BOT_TOKEN, chatId, userId)) {
         console.log(`[SETLANG] User is not an administrator: userId=${userId}, chatId=${chatId}, text=${text}`);
-        await sendMessage(env.TELEGRAM_BOT_TOKEN, chatId, 'This command is only available for administrators only');
+        const replyMessage = formatTranslation('language.set.error.not_admin', chatLanguageCode)
+        await sendMessage(env.TELEGRAM_BOT_TOKEN, chatId, replyMessage);
         return;
     }
 
     // Validate language code
     if (!languageCode || ENABLED_LANGUAGES.indexOf(languageCode) === -1) {
         console.log(`[SETLANG] Invalid language code: userId=${userId}, chatId=${chatId}, text=${text}`);
-        await sendMessage(env.TELEGRAM_BOT_TOKEN, chatId, 'Invalid language code. Available: English (en), Ukrainian (uk)');
+        const replyMessage = formatTranslation('language.set.error.invalid_language', chatLanguageCode, {
+            languages: ENABLED_LANGUAGES.toString()
+        })
+        await sendMessage(env.TELEGRAM_BOT_TOKEN, chatId, replyMessage);
         return;
     }
 
     await setChatLanguage(chatId, languageCode, env);
-    const sendResponse = await sendMessage(env.TELEGRAM_BOT_TOKEN, chatId, formatTranslation('language.set.success', languageCode, {
+    const replyMessage = formatTranslation('language.set.success', languageCode, {
         language: languageCode
-    }));
+    })
+    const sendResponse = await sendMessage(env.TELEGRAM_BOT_TOKEN, chatId, replyMessage);
 
     if (!sendResponse.ok) {
         const errorText = await sendResponse.text();

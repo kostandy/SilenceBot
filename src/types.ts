@@ -18,9 +18,7 @@ export interface Translations {
     'error.generic': string;
     'error.api_failed': string;
     'duration.minute': string;
-    'duration.minutes': string;
     'duration.hour': string;
-    'duration.hours': string;
     'duration.day': string;
 }
 
