@@ -67,3 +67,10 @@ export interface TelegramUpdate {
 export interface RestrictChatMemberPermissions {
     can_send_messages: boolean;
 }
+
+export type ChatMemberStatus = 'creator' | 'administrator' | 'member' | 'restricted' | 'left' | 'kicked';
+
+// In reality there's more fields in the response, but we only need the status
+export interface ChatMember {
+    status: ChatMemberStatus;
+}
