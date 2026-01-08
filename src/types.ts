@@ -51,6 +51,7 @@ export interface Message {
     text: string;
     date: number;
     reply_markup?: InlineKeyboardMarkup;
+    reply_to_message?: Message;
 }
 
 export interface InaccessibleMessage {

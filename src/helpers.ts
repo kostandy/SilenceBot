@@ -503,7 +503,7 @@ export async function handleMutemeCallbackQuery(callbackQuery: CallbackQuery, en
         env.TELEGRAM_BOT_TOKEN,
         chatId,
         replyMessage,
-        callbackQuery?.message?.message_id
+        (callbackQuery.message as Message)?.reply_to_message?.message_id || undefined
     );
 
     if (!sendResponse.ok) {
