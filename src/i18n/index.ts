@@ -1,12 +1,13 @@
 import { ENABLED_LANGUAGES } from '../config';
-import type { Env, LanguageCode, TranslationKey, Translations } from '../types';
+import type { Env } from '../types';
+import type { LanguageCode, TranslationKey, Translations } from './types';
 import englishTranslations from './english.json';
 import ukrainianTranslations from './ukrainian.json';
 
 /**
  * Translation cache loaded at module initialization
  */
-const translationsCache: Record<LanguageCode, Translations> = {
+export const translationsCache: Record<LanguageCode, Translations> = {
     en: englishTranslations as Translations,
     uk: ukrainianTranslations as Translations,
 };
@@ -14,7 +15,7 @@ const translationsCache: Record<LanguageCode, Translations> = {
 /**
  * Default language code (fallback)
  */
-const DEFAULT_LANGUAGE: LanguageCode = 'en';
+export const DEFAULT_LANGUAGE: LanguageCode = 'en';
 
 /**
  * Loads translations for a specific language code
@@ -35,7 +36,7 @@ export function loadTranslations(languageCode: LanguageCode): Translations {
 export function getTranslation(
     key: TranslationKey,
     languageCode: LanguageCode
-): string {
+): string | undefined {
     const translations = loadTranslations(languageCode);
     const translation = translations[key];
 
@@ -66,10 +67,10 @@ export function formatTranslation(
     // Replace all placeholders {key} with values from params
     for (const [paramKey, paramValue] of Object.entries(params)) {
         const placeholder = `{${paramKey}}`;
-        translation = translation.replace(new RegExp(placeholder.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g'), paramValue);
+        translation = translation?.replace(new RegExp(placeholder.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g'), paramValue);
     }
 
-    return translation;
+    return translation || '';
 }
 
 /**

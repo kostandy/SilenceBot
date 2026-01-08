@@ -1,7 +1,9 @@
 import { ENABLED_LANGUAGES } from "./config";
 import { isChatAdministrator } from './helpers/admins';
-import { formatTranslation, getChatLanguage, setChatLanguage } from "./i18n";
-import type { Env, LanguageCode, RestrictChatMemberPermissions, Message, InlineKeyboardMarkup, CallbackQuery } from "./types";
+import { DEFAULT_LANGUAGE, formatTranslation, getChatLanguage, loadTranslations, setChatLanguage, translationsCache } from "./i18n";
+import type { Env, RestrictChatMemberPermissions, Message, InlineKeyboardMarkup, CallbackQuery } from "./types";
+import type { LanguageCode, TranslationKey } from "./i18n/types";
+import { getPluralCategory } from "./i18n/pluralRules";
 
 /**
  * Parses duration string (e.g., "30m", "1h", "1d") to seconds
@@ -43,6 +45,50 @@ export function parseDuration(input: string): number | null {
 }
 
 /**
+ * Formats a translation with pluralization support
+ * Automatically selects the correct plural form based on the count
+ * @param baseKey - Base translation key (e.g., 'duration.minute')
+ * @param count - Number to determine plural form
+ * @param languageCode - Language code ('en' or 'uk')
+ * @param params - Additional parameters to replace in the translation
+ * @returns Formatted translated string with correct plural form
+ */
+export function formatPluralTranslation(
+    baseKey: string,
+    count: number,
+    languageCode: LanguageCode = DEFAULT_LANGUAGE,
+    params: Record<string, string | number> = {}
+): string {
+    const pluralCategory = getPluralCategory(count, languageCode);
+    const pluralKey = `${baseKey}.${pluralCategory}` as TranslationKey;
+    
+    // Fallback chain: try plural form, then 'other', then base key
+    const translations = loadTranslations(languageCode);
+    let translation = translations[pluralKey];
+    
+    if (!translation) {
+        // Fallback to 'other' if specific plural form doesn't exist
+        const otherKey = `${baseKey}.other` as TranslationKey;
+        translation = translations[otherKey];
+    }
+    
+    // Add count to params if not already present
+    const allParams = { ...params, amount: count.toString() };
+    
+    // Replace all placeholders {key} with values from params
+    let result = translation;
+    for (const [paramKey, paramValue] of Object.entries(allParams)) {
+        const placeholder = `{${paramKey}}`;
+        result = result?.replace(
+            new RegExp(placeholder.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g'), 
+            String(paramValue)
+        );
+    }
+    
+    return result || '';
+}
+
+/**
  * Formats duration in seconds to a human-readable string
  * @param durationSeconds - Duration in seconds
  * @returns Formatted string (e.g., "30 minutes", "1 hour 20 minutes", "1 day")
@@ -54,7 +100,7 @@ export function formatDuration(durationSeconds: number, languageCode?: LanguageC
 
     // If duration is 1 day or more, return "1 day"
     if (durationSeconds >= MAX_DURATION) {
-        return formatTranslation('duration.day', languageCode);
+        return formatPluralTranslation('duration.day', 1, languageCode);
     }
 
     const hours = Math.floor(durationSeconds / SECONDS_PER_HOUR);
@@ -63,13 +109,13 @@ export function formatDuration(durationSeconds: number, languageCode?: LanguageC
 
     // TODO: Improve multi-lang pluralism for minutes & hours
 
-    const durationMinuteText = formatTranslation('duration.minute', languageCode, {
+    const durationMinuteText = formatPluralTranslation('duration.minute', minutes, languageCode, {
         amount: minutes.toString()
     })
 
     // If duration is 1 hour or more, show hours and minutes
     if (hours > 0) {
-        const durationHourText = formatTranslation('duration.hour', languageCode, {
+        const durationHourText = formatPluralTranslation('duration.hour', hours, languageCode, {
             amount: hours.toString()
         })
         if (minutes === 0) {
@@ -273,7 +319,7 @@ export async function sendSetLangPromptReply(
         replyMarkup: {
             inline_keyboard: [
                 ENABLED_LANGUAGES.map(lang => ({
-                    text: formatTranslation(`language.set.prompt.option.${lang}`, chatLanguageCode),
+                    text: formatTranslation(`language.set.prompt.option.${lang as LanguageCode}`, chatLanguageCode),
                     callback_data: lang
                 }))
             ]

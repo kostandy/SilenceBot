@@ -11,8 +11,11 @@
   "language.set.error.invalid_language": "Invalid language code. Available: {languages}",
   "language.current": "Current language: {language}",
   "language.available": "Available languages: English (en), Ukrainian (uk)",
-  "duration.minute": "{amount} minute",
-  "duration.hour": "{amount} hour",
-  "duration.day": "1 day"
+  "duration.minute.one": "{amount} minute",
+  "duration.minute.other": "{amount} minutes",
+  "duration.hour.one": "{amount} hour",
+  "duration.hour.other": "{amount} hours",
+  "duration.day.one": "{amount} day",
+  "duration.day.other": "{amount} days"
 }
 

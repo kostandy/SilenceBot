@@ -1,35 +1,4 @@
-/**
- * Supported language codes
- */
-export type LanguageCode = 'en' | 'uk';
-
-/**
- * Translation keys and their values
- */
-export interface Translations {
-    'muteme.success': string;
-    'muteme.error.is_admin': string;
-    'muteme.invalid_duration': string;
-    'muteme.duration_capped': string;
-    'language.set.prompt': string;
-    "language.set.prompt.option.en": string;
-    "language.set.prompt.option.uk": string;
-    'language.set.success': string;
-    'language.set.error.not_admin': string;
-    'language.set.error.invalid_language': string;
-    'language.current': string;
-    'language.available': string;
-    'error.generic': string;
-    'error.api_failed': string;
-    'duration.minute': string;
-    'duration.hour': string;
-    'duration.day': string;
-}
-
-/**
- * Translation key type for type-safe access
- */
-export type TranslationKey = keyof Translations;
+import type { LanguageCode } from "./i18n/types";
 
 /**
  * Language preference stored in KV (chatId -> languageCode)

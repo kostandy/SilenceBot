@@ -11,8 +11,14 @@
   "language.set.error.invalid_language": "Невірний код мови. Доступні: {languages}",
   "language.current": "Поточна мова: {language}",
   "language.available": "Доступні мови: Англійська (en), Українська (uk)",
-  "duration.minute": "{amount} хвилин",
-  "duration.hour": "{amount} годин",
-  "duration.day": "1 день"
+  "duration.minute.one": "{amount} хвилину",
+  "duration.minute.few": "{amount} хвилини",
+  "duration.minute.many": "{amount} хвилин",
+  "duration.hour.one": "{amount} годину",
+  "duration.hour.few": "{amount} години",
+  "duration.hour.many": "{amount} годин",
+  "duration.day.one": "{amount} добу",
+  "duration.day.few": "{amount} доби",
+  "duration.day.many": "{amount} діб"
 }
 
