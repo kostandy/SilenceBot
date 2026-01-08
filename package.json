@@ -16,13 +16,12 @@
   "author": "Dmytro Andriushchenko <spaser15@outlook.com>",
   "license": "MIT",
   "devDependencies": {
-    "@cloudflare/workers-types": "^4.20251229.0",
+    "@cloudflare/workers-types": "^4.20260108.0",
     "@types/node": "^22",
     "typescript": "^5.9.3",
-    "wrangler": "^4.54.0"
+    "wrangler": "^4.57.0"
   },
   "engines": {
-    "node": ">=22.0.0 <23.0.0"
+    "node": ">=22.0.0"
   }
 }
-
