@@ -9,8 +9,18 @@ export type LanguageCode = 'en' | 'uk';
 export interface Translations {
     'muteme.success': string;
     'muteme.error.is_admin': string;
+    'muteme.error.unauthorized': string;
     'muteme.invalid_duration': string;
     'muteme.duration_capped': string;
+    'muteme.prompt': string;
+    'muteme.prompt.option.minute.one': string;
+    'muteme.prompt.option.minute.few'?: string;
+    'muteme.prompt.option.minute.many'?: string;
+    'muteme.prompt.option.minute.other': string;
+    'muteme.prompt.option.hour.one': string;
+    'muteme.prompt.option.hour.few'?: string;
+    'muteme.prompt.option.hour.many'?: string;
+    'muteme.prompt.option.hour.other': string;
     'language.set.prompt': string;
     "language.set.prompt.option.en": string;
     "language.set.prompt.option.uk": string;

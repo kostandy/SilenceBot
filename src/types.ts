@@ -29,6 +29,17 @@ export interface InlineKeyboardMarkup {
     inline_keyboard: InlineKeyboardButton[][];
 }
 
+export interface Chat {
+    id: number;
+    type: "private" | "group" | "supergroup" | "channel";
+    title?: string;
+    username?: string;
+    first_name?: string;
+    last_name?: string;
+    is_forum?: boolean;
+    is_direct_messages?: boolean;
+}
+
 export interface Message {
     message_id: number;
     from: User;
@@ -42,10 +53,18 @@ export interface Message {
     reply_markup?: InlineKeyboardMarkup;
 }
 
+export interface InaccessibleMessage {
+    chat: Chat;
+    message_id: number;
+    date: number;
+}
+
+export type MaybeInaccessibleMessage = Message | InaccessibleMessage;
+
 export interface CallbackQuery {
     id: string;
     from: User;
-    message?: Message;
+    message?: MaybeInaccessibleMessage;
     data: string;
 }
 

@@ -197,6 +197,22 @@ export async function restrictChatMember(
 }
 
 /**
+ * Checks if a string is a number without a unit (e.g., "12" but not "12m")
+ * @param input - Input string to check
+ * @returns The number if it's a valid number without unit, null otherwise
+ */
+function isNumberWithoutUnit(input: string): number | null {
+    const numberMatch = input.match(/^(\d+)$/);
+    if (numberMatch) {
+        const value = parseInt(numberMatch[1], 10);
+        if (value > 0) {
+            return value;
+        }
+    }
+    return null;
+}
+
+/**
  * Handles the /muteme command
  */
 export async function handleMutemeCommand(
@@ -211,6 +227,45 @@ export async function handleMutemeCommand(
     const args = text.split(/\s+/).slice(1);
     let durationSeconds = 1800; // Default: 30 minutes (30 * 60 = 1800 seconds)
     const requestedDuration = args.length > 0 ? args[0] : null;
+
+    const chatLanguageCode = await getChatLanguage(chatId, env);
+
+    // Check if user provided a number without unit (e.g., "12")
+    if (requestedDuration) {
+        const numberValue = isNumberWithoutUnit(requestedDuration);
+        if (numberValue !== null) {
+            // Send prompt with inline keyboard buttons
+            const promptMessage = formatTranslation('muteme.prompt', chatLanguageCode, {
+                amount: numberValue.toString()
+            });
+
+            const minutesText = formatPluralTranslation('muteme.prompt.option.minute', numberValue, chatLanguageCode, {
+                amount: numberValue.toString()
+            });
+            const hoursText = formatPluralTranslation('muteme.prompt.option.hour', numberValue, chatLanguageCode, {
+                amount: numberValue.toString()
+            });
+
+            // Include user ID in callback data to ensure only the original author can select
+            await sendMessage(env.TELEGRAM_BOT_TOKEN, chatId, promptMessage, message.message_id, {
+                replyMarkup: {
+                    inline_keyboard: [
+                        [
+                            {
+                                text: minutesText,
+                                callback_data: `muteme:${userId}:${numberValue}:m`
+                            },
+                            {
+                                text: hoursText,
+                                callback_data: `muteme:${userId}:${numberValue}:h`
+                            }
+                        ]
+                    ]
+                }
+            });
+            return;
+        }
+    }
 
     let requestedDurationIsInvalid = false;
     let requestedRudationIsCapped = false;
@@ -229,8 +284,6 @@ export async function handleMutemeCommand(
             requestedDurationIsInvalid = true;
         }
     }
-
-    const chatLanguageCode = await getChatLanguage(chatId, env)
 
     // Calculate until_date (Unix timestamp)
     const untilDate = Math.floor(Date.now() / 1000) + durationSeconds;
@@ -360,6 +413,110 @@ export async function deleteMessage(chatId: number, messageId: number, env: Env)
     });
 }
 
+/**
+ * Handles callback queries for /muteme command (when user selects minutes or hours)
+ */
+export async function handleMutemeCallbackQuery(callbackQuery: CallbackQuery, env: Env): Promise<void> {
+    const chatId = callbackQuery.message?.chat.id;
+    const userId = callbackQuery.from.id;
+    const data = callbackQuery.data;
+
+    if (!chatId || !data) {
+        return;
+    }
+
+    // Parse callback data: "muteme:{userId}:{amount}:{unit}" (e.g., "muteme:123456:12:m")
+    const match = data.match(/^muteme:(\d+):(\d+):([mh])$/);
+    if (!match) {
+        console.error(`[MUTEME] Invalid callback data format: ${data}`);
+        return;
+    }
+
+    const authorizedUserId = parseInt(match[1], 10);
+    const amount = parseInt(match[2], 10);
+    const unit = match[3];
+
+    // Verify that only the original command author can select the button
+    if (userId !== authorizedUserId) {
+        console.log(`[MUTEME] Unauthorized button click: authorizedUserId=${authorizedUserId}, actualUserId=${userId}, chatId=${chatId}`);
+        const chatLanguageCode = await getChatLanguage(chatId, env);
+        const errorMessage = formatTranslation('muteme.error.unauthorized', chatLanguageCode);
+        await answerCallbackQuery(callbackQuery.id, errorMessage, env);
+        return;
+    }
+
+    // Calculate duration in seconds
+    let durationSeconds: number;
+    if (unit === 'm') {
+        durationSeconds = amount * 60; // 60 seconds per minute
+    } else {
+        durationSeconds = amount * 3600; // 60 * 60 = 3600 seconds per hour
+    }
+
+    // Cap at maximum duration (1 day)
+    const MAX_DURATION = 86400; // 24 * 60 * 60 = 86400
+    durationSeconds = Math.min(durationSeconds, MAX_DURATION);
+
+    const chatLanguageCode = await getChatLanguage(chatId, env);
+
+    // Check if user is an admin (admins cannot mute themselves)
+    const isAdmin = await isChatAdministrator(env.TELEGRAM_BOT_TOKEN, chatId, userId);
+    if (isAdmin) {
+        console.log(`[MUTEME] User is an admin, cannot mute: userId=${userId}, chatId=${chatId}`);
+        const replyMessage = formatTranslation('muteme.error.is_admin', chatLanguageCode);
+        await answerCallbackQuery(callbackQuery.id, replyMessage, env);
+        return;
+    }
+
+    // Calculate until_date (Unix timestamp)
+    const untilDate = Math.floor(Date.now() / 1000) + durationSeconds;
+    const durationMinutes = Math.floor(durationSeconds / 60);
+    const formattedDuration = formatDuration(durationSeconds, chatLanguageCode);
+
+    console.log(`[MUTEME] Processing mute request from callback: userId=${userId}, chatId=${chatId}, duration=${durationMinutes}m, untilDate=${untilDate}`);
+
+    // Restrict the user
+    const restrictResponse = await restrictChatMember(env.TELEGRAM_BOT_TOKEN, chatId, userId, untilDate);
+    if (!restrictResponse.ok) {
+        const errorText = await restrictResponse.text();
+        console.error(`[MUTEME] Failed to restrict user: userId=${userId}, chatId=${chatId}, status=${restrictResponse.status}, error=${errorText}`);
+        const errorMessage = formatTranslation('error.api_failed', chatLanguageCode);
+        await answerCallbackQuery(callbackQuery.id, errorMessage, env);
+        return;
+    }
+
+    // Delete the prompt message with buttons
+    if (callbackQuery.message) {
+        const deleteResponse = await deleteMessage(chatId, callbackQuery.message.message_id, env);
+        if (!deleteResponse.ok) {
+            const errorText = await deleteResponse.text();
+            console.error(`[MUTEME] Failed to delete prompt message: userId=${userId}, chatId=${chatId}, status=${deleteResponse.status}, error=${errorText}`);
+        }
+    }
+
+    // Send success message
+    const replyMessage = formatTranslation('muteme.success', chatLanguageCode, {
+        duration: formattedDuration
+    });
+
+    const sendResponse = await sendMessage(
+        env.TELEGRAM_BOT_TOKEN,
+        chatId,
+        replyMessage,
+        callbackQuery?.message?.message_id
+    );
+
+    if (!sendResponse.ok) {
+        const errorText = await sendResponse.text();
+        console.error(`[MUTEME] Failed to send confirmation: userId=${userId}, chatId=${chatId}, status=${sendResponse.status}, error=${errorText}`);
+    } else {
+        console.log(`[MUTEME] Successfully muted user: userId=${userId}, chatId=${chatId}, duration=${durationMinutes}m`);
+    }
+}
+
+/**
+ * Handles callback queries for /setlang command
+ */
 export async function handleSetLangCallbackQuery(callbackQuery: CallbackQuery, env: Env): Promise<void> {
     const chatId = callbackQuery.message?.chat.id;
     const userId = callbackQuery.from.id;
@@ -376,6 +533,11 @@ export async function handleSetLangCallbackQuery(callbackQuery: CallbackQuery, e
         console.log(`[i18n] Attempt to bypass admin command: userId=${userId}, chatId=${chatId}`);
         const replyMessage = formatTranslation('language.set.error.not_admin', chatLanguageCode)
         await sendMessage(env.TELEGRAM_BOT_TOKEN, chatId, replyMessage);
+        return;
+    }
+
+    if (!callbackQuery?.message || !('text' in callbackQuery.message)) {
+        console.log(`[i18n] Inaccessible message: userId=${userId}, chatId=${chatId}`);
         return;
     }
 
