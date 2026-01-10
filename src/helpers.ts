@@ -235,10 +235,7 @@ export async function handleMutemeCommand(
         const numberValue = isNumberWithoutUnit(requestedDuration);
         if (numberValue !== null) {
             // Send prompt with inline keyboard buttons
-            const promptMessage = formatTranslation('muteme.prompt', chatLanguageCode, {
-                amount: numberValue.toString()
-            });
-
+            const promptMessage = formatTranslation('muteme.prompt', chatLanguageCode);
             const minutesText = formatPluralTranslation('muteme.prompt.option.minute', numberValue, chatLanguageCode, {
                 amount: numberValue.toString()
             });
@@ -275,6 +272,7 @@ export async function handleMutemeCommand(
         if (parsedDuration !== null) {
             durationSeconds = parsedDuration;
             // Log if duration was capped at max
+            // 86400 = 24 * 60 * 60 = 1 day in seconds
             if (parsedDuration > 86400) {
                 console.log(`[MUTEME] Duration capped at max: requested=${requestedDuration}, original=${parsedDuration}, capped=86400`);
                 requestedRudationIsCapped = true;
@@ -283,6 +281,40 @@ export async function handleMutemeCommand(
             console.log(`[MUTEME] Invalid duration format: "${requestedDuration}", using default 30m`);
             requestedDurationIsInvalid = true;
         }
+    } else {
+        // If no duration was provided, send 3 buttons: 30m, 8h, 1d
+        const promptMessage = formatTranslation('muteme.prompt', chatLanguageCode);
+        const defaultMinutesText = formatPluralTranslation('muteme.prompt.option.minute', 30, chatLanguageCode, {
+            amount: '30'
+        });
+        const defaultHoursText = formatPluralTranslation('muteme.prompt.option.hour', 8, chatLanguageCode, {
+            amount: '8'
+        });
+        const defaultDaysText = formatPluralTranslation('muteme.prompt.option.day', 1, chatLanguageCode, {
+            amount: '1'
+        });
+
+        await sendMessage(env.TELEGRAM_BOT_TOKEN, chatId, promptMessage, message.message_id, {
+            replyMarkup: {
+                inline_keyboard: [
+                    [
+                        {
+                            text: defaultMinutesText,
+                            callback_data: `muteme:${userId}:30:m`
+                        },
+                        {
+                            text: defaultHoursText,
+                            callback_data: `muteme:${userId}:8:h`
+                        },
+                        {
+                            text: defaultDaysText,
+                            callback_data: `muteme:${userId}:1:d`
+                        }
+                    ]
+                ]
+            }
+        });
+        return;
     }
 
     // Calculate until_date (Unix timestamp)
@@ -426,7 +458,7 @@ export async function handleMutemeCallbackQuery(callbackQuery: CallbackQuery, en
     }
 
     // Parse callback data: "muteme:{userId}:{amount}:{unit}" (e.g., "muteme:123456:12:m")
-    const match = data.match(/^muteme:(\d+):(\d+):([mh])$/);
+    const match = data.match(/^muteme:(\d+):(\d+):([mhd])$/);
     if (!match) {
         console.error(`[MUTEME] Invalid callback data format: ${data}`);
         return;
@@ -447,10 +479,19 @@ export async function handleMutemeCallbackQuery(callbackQuery: CallbackQuery, en
 
     // Calculate duration in seconds
     let durationSeconds: number;
-    if (unit === 'm') {
-        durationSeconds = amount * 60; // 60 seconds per minute
-    } else {
-        durationSeconds = amount * 3600; // 60 * 60 = 3600 seconds per hour
+    switch (unit) {
+        case 'm':
+            durationSeconds = amount * 60; // 60 seconds per minute
+            break;
+        case 'h':
+            durationSeconds = amount * 3600; // 60 * 60 = 3600 seconds per hour
+            break;
+        case 'd':
+            durationSeconds = 86400; // 24 * 60 * 60 = 86400 seconds per day
+            break;
+        default:
+            console.error(`[MUTEME] Invalid unit: ${unit}`);
+            return;
     }
 
     // Cap at maximum duration (1 day)

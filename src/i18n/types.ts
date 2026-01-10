@@ -21,6 +21,7 @@ export interface Translations {
     'muteme.prompt.option.hour.few'?: string;
     'muteme.prompt.option.hour.many'?: string;
     'muteme.prompt.option.hour.other': string;
+    'muteme.prompt.option.day.one': string;
     'language.set.prompt': string;
     "language.set.prompt.option.en": string;
     "language.set.prompt.option.uk": string;
