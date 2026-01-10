@@ -108,8 +108,6 @@ export function formatDuration(durationSeconds: number, languageCode?: LanguageC
     const remainingSeconds = durationSeconds % SECONDS_PER_HOUR;
     const minutes = Math.floor(remainingSeconds / SECONDS_PER_MINUTE);
 
-    // TODO: Improve multi-lang pluralism for minutes & hours
-
     const durationMinuteText = formatPluralTranslation('duration.minute', minutes, languageCode, {
         amount: minutes.toString()
     })
@@ -320,7 +318,6 @@ export async function sendSetLangPromptReply(
 ): Promise<void> {
     const chatId = message.chat.id;
     const userId = message.from.id;
-    const text = message.text;
     const chatLanguageCode = await getChatLanguage(chatId, env)
 
     // Check if user is an administrator
