@@ -1,5 +1,7 @@
 import type { Env, Update } from "./types";
-import { handleMutemeCommand, handleMutemeCallbackQuery, handleSetLangCallbackQuery, sendSetLangPromptReply as sendSetLangPromptReply } from "./helpers";
+import { handleMutemeCommand } from "./handlers/muteme-handler";
+import { handleMutemeCallbackQuery } from "./handlers/muteme-handler";
+import { handleSetLangCallbackQuery, sendSetLangPromptReply } from "./handlers/language-handler";
 
 /**
  * Telegram bot for self-muting in group chats
