@@ -1,48 +1,29 @@
-import { ENABLED_LANGUAGES } from "./config";
-import { isChatAdministrator } from './services/admin-service';
-import { DEFAULT_LANGUAGE, formatTranslation, getChatLanguage, loadTranslations, setChatLanguage } from "./i18n";
-import type { Env, Message, CallbackQuery } from "./types";
-import type { LanguageCode, TranslationKey } from "./i18n/types";
-import { getPluralCategory } from "./i18n/pluralRules";
-import { answerCallbackQuery, deleteMessage, restrictChatMember, sendMessage } from "./services/telegram-api";
+import { DEFAULT_LANGUAGE, getTranslation, loadTranslations } from "../i18n";
+import { getPluralCategory } from "../i18n/pluralRules";
+import type { LanguageCode, TranslationKey } from "../i18n/types";
 
 /**
- * Parses duration string (e.g., "30m", "1h", "1d") to seconds
- * Maximum allowed duration is 1 day (86400 seconds)
- * @param input - Duration string (e.g., "45m", "1h", "1d")
- * @returns Duration in seconds, or null if invalid
+ * Formats a translation string with parameters
+ * Replaces placeholders like {param} with actual values
+ * @param key - Translation key
+ * @param languageCode - Language code ('en' or 'uk')
+ * @param params - Parameters to replace in the translation
+ * @returns Formatted translated string
  */
-export function parseDuration(input: string): number | null {
-    const match = input.match(/^(\d+)([mhd])$/i);
-    if (!match) {
-        return null;
+export function formatTranslation(
+    key: TranslationKey,
+    languageCode: LanguageCode = DEFAULT_LANGUAGE,
+    params: Record<string, string> = {}
+): string {
+    let translation = getTranslation(key, languageCode);
+
+    // Replace all placeholders {key} with values from params
+    for (const [paramKey, paramValue] of Object.entries(params)) {
+        const placeholder = `{${paramKey}}`;
+        translation = translation?.replace(new RegExp(placeholder.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g'), paramValue);
     }
 
-    const value = parseInt(match[1], 10);
-    const unit = match[2].toLowerCase();
-
-    if (value <= 0) {
-        return null;
-    }
-
-    let seconds: number;
-    switch (unit) {
-        case 'm':
-            seconds = value * 60; // 60 seconds per minute
-            break;
-        case 'h':
-            seconds = value * 3600; // 60 * 60 = 3600 seconds per hour
-            break;
-        case 'd':
-            seconds = value * 86400; // 24 * 60 * 60 = 86400 seconds per day
-            break;
-        default:
-            return null;
-    }
-
-    // Maximum duration is 1 day (86400 seconds)
-    const MAX_DURATION = 86400; // 24 * 60 * 60 = 86400
-    return Math.min(seconds, MAX_DURATION);
+    return translation || '';
 }
 
 /**

@@ -1,9 +1,10 @@
-import { formatPluralTranslation, parseDuration, formatDuration } from "../helpers";
-import { getChatLanguage, formatTranslation } from "../i18n";
+import { formatDuration, formatPluralTranslation } from "../utils/formatting";
+import { getChatLanguage } from "../i18n";
+import { formatTranslation } from "../utils/formatting";
 import { isChatAdministrator } from "../services/admin-service";
 import { sendMessage, restrictChatMember, answerCallbackQuery, deleteMessage } from "../services/telegram-api";
 import type { Env, CallbackQuery, Message } from "../types";
-import { isNumberWithoutUnit } from "../utils/duration";
+import { isNumberWithoutUnit, parseDuration } from "../utils/duration";
 
 /**
  * Handles the /muteme command

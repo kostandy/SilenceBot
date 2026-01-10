@@ -1,4 +1,5 @@
-import { formatTranslation, getChatLanguage, setChatLanguage } from "../i18n";
+import { getChatLanguage, setChatLanguage } from "../i18n";
+import { formatTranslation } from "../utils/formatting";
 import { isChatAdministrator } from "../services/admin-service";
 import { answerCallbackQuery, deleteMessage, sendMessage } from "../services/telegram-api";
 import type { CallbackQuery, Env, Message } from "../types";

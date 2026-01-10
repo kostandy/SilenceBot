@@ -50,30 +50,6 @@ export function getTranslation(
 }
 
 /**
- * Formats a translation string with parameters
- * Replaces placeholders like {param} with actual values
- * @param key - Translation key
- * @param languageCode - Language code ('en' or 'uk')
- * @param params - Parameters to replace in the translation
- * @returns Formatted translated string
- */
-export function formatTranslation(
-    key: TranslationKey,
-    languageCode: LanguageCode = DEFAULT_LANGUAGE,
-    params: Record<string, string> = {}
-): string {
-    let translation = getTranslation(key, languageCode);
-
-    // Replace all placeholders {key} with values from params
-    for (const [paramKey, paramValue] of Object.entries(params)) {
-        const placeholder = `{${paramKey}}`;
-        translation = translation?.replace(new RegExp(placeholder.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g'), paramValue);
-    }
-
-    return translation || '';
-}
-
-/**
  * Retrieves the language preference for a chat from KV storage
  * Returns default language ('en') if not set or on error
  * @param chatId - Telegram chat ID
