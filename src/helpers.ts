@@ -1,5 +1,5 @@
 import { ENABLED_LANGUAGES } from "./config";
-import { isChatAdministrator } from './helpers/admins';
+import { isChatAdministrator } from './services/admin-service';
 import { DEFAULT_LANGUAGE, formatTranslation, getChatLanguage, loadTranslations, setChatLanguage } from "./i18n";
 import type { Env, Message, CallbackQuery } from "./types";
 import type { LanguageCode, TranslationKey } from "./i18n/types";
